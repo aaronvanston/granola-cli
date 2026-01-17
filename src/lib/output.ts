@@ -107,11 +107,26 @@ export function formatTranscript(
 ): string {
   const { diarize = true, timestamps = true, attendees = true, raw = false } = options;
   const date = formatDate(doc.google_calendar_event?.start?.dateTime || doc.created_at);
-  const peopleArr = getPeopleArray(doc.people);
-  const attendeeNames = peopleArr
-    .map((p) => p?.name)
-    .filter(Boolean)
-    .join(', ');
+  // Extract attendees from nested people structure
+  const peopleObj = doc.people as Record<string, unknown> | undefined;
+  const attendeeNames: string[] = [];
+  if (peopleObj) {
+    // Add creator
+    const creator = peopleObj.creator as Record<string, unknown> | undefined;
+    if (creator?.name) {
+      attendeeNames.push(creator.name as string);
+    }
+    // Add attendees array
+    const attendeesArr = peopleObj.attendees as Array<Record<string, unknown>> | undefined;
+    if (attendeesArr) {
+      for (const a of attendeesArr) {
+        if (a?.name) {
+          attendeeNames.push(a.name as string);
+        }
+      }
+    }
+  }
+  const attendeesStr = attendeeNames.join(', ');
 
   // Raw mode: just the text
   if (raw) {
@@ -120,8 +135,8 @@ export function formatTranscript(
 
   let output = `\n${c('bold', `# ${doc.title || '(untitled)'}`)} — Transcript\n`;
   output += `${c('dim', 'Date:')} ${date}\n`;
-  if (attendees && attendeeNames) {
-    output += `${c('dim', 'Attendees:')} ${attendeeNames}\n`;
+  if (attendees && attendeesStr) {
+    output += `${c('dim', 'Attendees:')} ${attendeesStr}\n`;
   }
   output += `${c('dim', 'Segments:')} ${segments.length}\n\n`;
 
