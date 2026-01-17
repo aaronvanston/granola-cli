@@ -1,17 +1,18 @@
 /**
  * Attendee extraction utilities
- * Handles nested people structures including groups
+ * Shows actual attendees as they appear in Granola (not expanded)
  */
 
 export interface ExtractedAttendee {
   name: string;
   email?: string;
+  isGroup?: boolean;
+  memberCount?: number;
 }
 
 /**
- * Extract all attendees from a document's people field
- * Expands groups to get individual members
- * Deduplicates by email
+ * Extract attendees from a document's people field
+ * Does NOT expand groups - shows them as groups with member count
  */
 export function extractAttendees(people: unknown): ExtractedAttendee[] {
   if (!people || typeof people !== 'object') {
@@ -22,7 +23,7 @@ export function extractAttendees(people: unknown): ExtractedAttendee[] {
   const seen = new Set<string>();
   const attendees: ExtractedAttendee[] = [];
 
-  const addPerson = (name: string | undefined, email: string | undefined) => {
+  const addAttendee = (name: string | undefined, email: string | undefined, isGroup = false, memberCount?: number) => {
     if (!name && !email) {
       return;
     }
@@ -31,7 +32,12 @@ export function extractAttendees(people: unknown): ExtractedAttendee[] {
       return;
     }
     seen.add(key);
-    attendees.push({ name: name || '(unknown)', email });
+    attendees.push({
+      name: name || '(unknown)',
+      email,
+      isGroup,
+      memberCount,
+    });
   };
 
   const extractFromEntry = (entry: Record<string, unknown>) => {
@@ -39,24 +45,20 @@ export function extractAttendees(people: unknown): ExtractedAttendee[] {
     const email = entry.email as string | undefined;
     const details = entry.details as Record<string, unknown> | undefined;
 
-    // Check if this is a group with members
+    // Check if this is a group
     const group = details?.group as Record<string, unknown> | undefined;
     if (group?.members && Array.isArray(group.members)) {
-      // It's a group - extract all members
-      for (const member of group.members) {
-        if (member && typeof member === 'object') {
-          const m = member as Record<string, unknown>;
-          const memberName =
-            (m.name as string | undefined) ||
-            ((m.details as Record<string, unknown>)?.person?.name?.fullName as string | undefined);
-          const memberEmail = m.email as string | undefined;
-          addPerson(memberName, memberEmail);
-        }
-      }
+      // It's a group - add as group with member count
+      const memberCount = group.members.length;
+      addAttendee(name, email, true, memberCount);
     } else {
       // It's an individual
-      const fullName = name || ((details?.person as Record<string, unknown>)?.name?.fullName as string | undefined);
-      addPerson(fullName, email);
+      const fullName =
+        name ||
+        (((details?.person as Record<string, unknown>)?.name as Record<string, unknown>)?.fullName as
+          | string
+          | undefined);
+      addAttendee(fullName, email, false);
     }
   };
 
@@ -81,14 +83,21 @@ export function extractAttendees(people: unknown): ExtractedAttendee[] {
 
 /**
  * Format attendees as a string for display
+ * Groups shown as "Engineering (12 people)"
  */
 export function formatAttendees(attendees: ExtractedAttendee[], includeEmail = false): string {
-  return attendees.map((a) => (includeEmail && a.email ? `${a.name} <${a.email}>` : a.name)).join(', ');
-}
-
-/**
- * Format attendees as a multi-line list
- */
-export function formatAttendeesMultiline(attendees: ExtractedAttendee[]): string {
-  return attendees.map((a) => (a.email ? `  ${a.name} <${a.email}>` : `  ${a.name}`)).join('\n');
+  return attendees
+    .map((a) => {
+      let display = a.name;
+      if (a.isGroup && a.memberCount) {
+        display += ` (${a.memberCount} people)`;
+      }
+      if (includeEmail && a.email && !a.isGroup) {
+        display = `${a.name} <${a.email}>`;
+      } else if (includeEmail && a.email && a.isGroup) {
+        display = `${a.name} <${a.email}> (${a.memberCount} people)`;
+      }
+      return display;
+    })
+    .join(', ');
 }
