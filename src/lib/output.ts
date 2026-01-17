@@ -3,7 +3,7 @@
  */
 
 import type { Document, Person, TranscriptSegment } from '../types.js';
-import { extractAttendees, formatAttendees } from './attendees.js';
+import { extractAttendees, extractParticipants, formatAttendees } from './attendees.js';
 import { formatDate, formatDateTime, getDocumentDate, getPeopleArray } from './cache.js';
 
 // ANSI color codes
@@ -63,11 +63,15 @@ export function formatMeetingListItem(doc: Document): string {
  */
 export function formatMeetingDetail(doc: Document): string {
   const date = formatDateTime(doc.google_calendar_event?.start?.dateTime || doc.created_at);
-  const extractedAttendees = extractAttendees(doc.people);
+  const { organizer, attendees: extractedAttendees } = extractParticipants(doc);
   const attendeesStr = formatAttendees(extractedAttendees, true); // Include emails
 
   let output = `\n${c('bold', `# ${doc.title || '(untitled)'}`)}\n`;
   output += `${c('dim', 'Date:')} ${date}\n`;
+  if (organizer) {
+    const orgStr = organizer.email ? `${organizer.name} <${organizer.email}>` : organizer.name;
+    output += `${c('dim', 'Organizer:')} ${orgStr}\n`;
+  }
   if (attendeesStr) {
     output += `${c('dim', 'Attendees:')} ${attendeesStr}\n`;
   }
@@ -103,10 +107,10 @@ export function formatTranscript(
   segments: TranscriptSegment[],
   options: TranscriptOptions = {},
 ): string {
-  const { diarize = true, timestamps = true, attendees = true, raw = false } = options;
+  const { diarize = true, timestamps = true, attendees: showAttendees = true, raw = false } = options;
   const date = formatDateTime(doc.google_calendar_event?.start?.dateTime || doc.created_at);
-  // Extract attendees (expands groups to individuals)
-  const extractedAttendees = extractAttendees(doc.people);
+  // Extract participants with organizer
+  const { organizer, attendees: extractedAttendees } = extractParticipants(doc);
   const attendeesStr = formatAttendees(extractedAttendees, true); // Include emails
 
   // Raw mode: just the text
@@ -116,7 +120,11 @@ export function formatTranscript(
 
   let output = `\n${c('bold', `# ${doc.title || '(untitled)'}`)} — Transcript\n`;
   output += `${c('dim', 'Date:')} ${date}\n`;
-  if (attendees && attendeesStr) {
+  if (showAttendees && organizer) {
+    const orgStr = organizer.email ? `${organizer.name} <${organizer.email}>` : organizer.name;
+    output += `${c('dim', 'Organizer:')} ${orgStr}\n`;
+  }
+  if (showAttendees && attendeesStr) {
     output += `${c('dim', 'Attendees:')} ${attendeesStr}\n`;
   }
   output += `${c('dim', 'Segments:')} ${segments.length}\n\n`;

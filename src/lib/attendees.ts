@@ -3,11 +3,18 @@
  * Shows actual attendees as they appear in Granola (not expanded)
  */
 
+import type { Document } from '../types.js';
+
 export interface ExtractedAttendee {
   name: string;
   email?: string;
   isGroup?: boolean;
   memberCount?: number;
+}
+
+export interface MeetingParticipants {
+  organizer?: ExtractedAttendee;
+  attendees: ExtractedAttendee[];
 }
 
 /**
@@ -79,6 +86,38 @@ export function extractAttendees(people: unknown): ExtractedAttendee[] {
   }
 
   return attendees;
+}
+
+/**
+ * Extract participants from a document including organizer
+ */
+export function extractParticipants(doc: Document): MeetingParticipants {
+  const attendees = extractAttendees(doc.people);
+
+  // Get organizer from google_calendar_event
+  let organizer: ExtractedAttendee | undefined;
+  const calEvent = doc.google_calendar_event as Record<string, unknown> | undefined;
+  const organizerData = calEvent?.organizer as Record<string, unknown> | undefined;
+
+  if (organizerData?.email) {
+    const orgEmail = organizerData.email as string;
+    const orgName = organizerData.displayName as string | undefined;
+
+    // Find organizer in attendees list for full name
+    const orgInAttendees = attendees.find((a) => a.email?.toLowerCase() === orgEmail.toLowerCase());
+
+    organizer = {
+      name: orgInAttendees?.name || orgName || orgEmail.split('@')[0],
+      email: orgEmail,
+    };
+
+    // Remove organizer from attendees list (will show separately)
+    const filteredAttendees = attendees.filter((a) => a.email?.toLowerCase() !== orgEmail.toLowerCase());
+
+    return { organizer, attendees: filteredAttendees };
+  }
+
+  return { attendees };
 }
 
 /**
