@@ -36,11 +36,15 @@ The Granola desktop app creates these files automatically when you log in.
 ## Quick Start
 
 ```bash
-granola list                    # Recent meetings
-granola search "standup"        # Find meetings
-granola show "weekly sync"      # View details
-granola transcript "1:1"        # Full transcript ⚡
-granola export "retro" ./out.md # Export to markdown
+granola list                                 # Recent meetings
+granola search "standup"                     # Find meetings
+granola show "weekly sync"                   # View details
+granola show "Kickoff" --expand-groups       # Show groups + group directory
+
+granola transcript "1:1"                     # Full transcript ⚡
+granola transcript "Kickoff" --expand-groups # Expand invited groups
+
+granola export "retro" ./out.md              # Export to markdown
 ```
 
 ## Commands
@@ -82,10 +86,12 @@ granola export "retro" ./out.md # Export to markdown
 ## Transcript Options
 
 ```bash
-granola transcript "meeting"               # Full: You/Them + timestamps
+granola transcript "meeting"                   # Full: organizer/attendees + You/Them + timestamps
+granola transcript "meeting" --no-attendees     # Hide organizer/attendees block
+granola transcript "meeting" --expand-groups    # Show group member directory (may not have attended)
 granola transcript "meeting" --no-timestamps
 granola transcript "meeting" --no-diarize
-granola transcript "meeting" --raw         # Plain text only
+granola transcript "meeting" --raw              # Plain text only
 ```
 
 Speaker diarization: **You** (green) = microphone, **Them** (cyan) = system audio.

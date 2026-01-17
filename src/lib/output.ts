@@ -3,7 +3,7 @@
  */
 
 import type { Document, Person, TranscriptSegment } from '../types.js';
-import { extractAttendees, extractParticipants, formatAttendees } from './attendees.js';
+import { extractParticipants, formatAttendees, formatAttendeesMultiline } from './attendees.js';
 import { formatDate, formatDateTime, getDocumentDate, getPeopleArray } from './cache.js';
 
 // ANSI color codes
@@ -61,10 +61,16 @@ export function formatMeetingListItem(doc: Document): string {
 /**
  * Format meeting details
  */
-export function formatMeetingDetail(doc: Document): string {
+export interface MeetingDetailOptions {
+  attendees?: boolean; // Show attendees (default: true)
+  expandGroups?: boolean; // Show group member directory (default: false)
+}
+
+export function formatMeetingDetail(doc: Document, options: MeetingDetailOptions = {}): string {
+  const { attendees: showAttendees = true, expandGroups = false } = options;
   const date = formatDateTime(doc.google_calendar_event?.start?.dateTime || doc.created_at);
-  const { organizer, attendees: extractedAttendees } = extractParticipants(doc);
-  const attendeesStr = formatAttendees(extractedAttendees, true); // Include emails
+  const { organizer, attendees: extractedAttendees, expandedGroups } = extractParticipants(doc, { expandGroups });
+  const attendeesStr = formatAttendees(extractedAttendees, true);
 
   let output = `\n${c('bold', `# ${doc.title || '(untitled)'}`)}\n`;
   output += `${c('dim', 'Date:')} ${date}\n`;
@@ -72,9 +78,24 @@ export function formatMeetingDetail(doc: Document): string {
     const orgStr = organizer.email ? `${organizer.name} <${organizer.email}>` : organizer.name;
     output += `${c('dim', 'Organizer:')} ${orgStr}\n`;
   }
-  if (attendeesStr) {
+  if (showAttendees && attendeesStr) {
     output += `${c('dim', 'Attendees:')} ${attendeesStr}\n`;
   }
+
+  if (showAttendees && expandGroups && expandedGroups && expandedGroups.length > 0) {
+    output += `\n${c('cyan', '## Group Members (directory, may not have attended)')}\n`;
+    for (const { group, members } of expandedGroups) {
+      const groupLine = formatAttendees([group], true);
+      output += `${groupLine}\n`;
+      if (members.length > 0) {
+        output += `${formatAttendeesMultiline(members, true)}\n`;
+      } else {
+        output += '  - (no members found)\n';
+      }
+      output += '\n';
+    }
+  }
+
   output += `${c('dim', 'ID:')} ${doc.id}\n`;
 
   if (doc.summary) {
@@ -96,6 +117,7 @@ export interface TranscriptOptions {
   diarize?: boolean; // Show You/Them labels (default: true)
   timestamps?: boolean; // Show timestamps (default: true)
   attendees?: boolean; // Show attendees at start (default: true)
+  expandGroups?: boolean; // Show group member directory (default: false)
   raw?: boolean; // Just text, no formatting
 }
 
@@ -107,11 +129,16 @@ export function formatTranscript(
   segments: TranscriptSegment[],
   options: TranscriptOptions = {},
 ): string {
-  const { diarize = true, timestamps = true, attendees: showAttendees = true, raw = false } = options;
+  const {
+    diarize = true,
+    timestamps = true,
+    attendees: showAttendees = true,
+    expandGroups = false,
+    raw = false,
+  } = options;
   const date = formatDateTime(doc.google_calendar_event?.start?.dateTime || doc.created_at);
-  // Extract participants with organizer
-  const { organizer, attendees: extractedAttendees } = extractParticipants(doc);
-  const attendeesStr = formatAttendees(extractedAttendees, true); // Include emails
+  const { organizer, attendees: extractedAttendees, expandedGroups } = extractParticipants(doc, { expandGroups });
+  const attendeesStr = formatAttendees(extractedAttendees, true);
 
   // Raw mode: just the text
   if (raw) {
@@ -127,6 +154,21 @@ export function formatTranscript(
   if (showAttendees && attendeesStr) {
     output += `${c('dim', 'Attendees:')} ${attendeesStr}\n`;
   }
+
+  if (showAttendees && expandGroups && expandedGroups && expandedGroups.length > 0) {
+    output += `\n${c('cyan', '## Group Members (directory, may not have attended)')}\n`;
+    for (const { group, members } of expandedGroups) {
+      const groupLine = formatAttendees([group], true);
+      output += `${groupLine}\n`;
+      if (members.length > 0) {
+        output += `${formatAttendeesMultiline(members, true)}\n`;
+      } else {
+        output += '  - (no members found)\n';
+      }
+      output += '\n';
+    }
+  }
+
   output += `${c('dim', 'Segments:')} ${segments.length}\n\n`;
 
   for (const seg of segments) {

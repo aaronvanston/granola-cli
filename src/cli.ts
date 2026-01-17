@@ -163,7 +163,12 @@ function cmdShow(positional: string[], options: Record<string, string | boolean 
     return;
   }
 
-  console.log(formatMeetingDetail(doc));
+  const detailOpts = {
+    attendees: !options['no-attendees'],
+    expandGroups: !!options['expand-groups'],
+  };
+
+  console.log(formatMeetingDetail(doc, detailOpts));
 }
 
 async function cmdTranscript(positional: string[], options: Record<string, string | boolean | number>): Promise<void> {
@@ -181,6 +186,7 @@ async function cmdTranscript(positional: string[], options: Record<string, strin
     diarize: !options['no-diarize'],
     timestamps: !options['no-timestamps'],
     attendees: !options['no-attendees'],
+    expandGroups: !!options['expand-groups'],
     raw: !!options.raw,
   };
 
@@ -589,7 +595,9 @@ Arguments:
   identifier     Meeting ID (UUID) or title to search for
 
 Options:
-  --json         Output as JSON object
+  --json            Output as JSON object
+  --no-attendees    Hide attendees
+  --expand-groups   Show group member directory (may not have attended)
 
 Description:
   Shows full details of a meeting including:
@@ -619,6 +627,7 @@ Arguments:
 Options:
   --json           Output as JSON with segments array
   --no-attendees   Hide attendees list at start
+  --expand-groups  Show group member directory (may not have attended)
   --no-diarize     Hide You/Them speaker labels
   --no-timestamps  Hide timestamps
   --raw            Just output the text (no formatting)
