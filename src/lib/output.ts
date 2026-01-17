@@ -93,6 +93,7 @@ export function formatMeetingDetail(doc: Document): string {
 export interface TranscriptOptions {
   diarize?: boolean; // Show You/Them labels (default: true)
   timestamps?: boolean; // Show timestamps (default: true)
+  attendees?: boolean; // Show attendees at start (default: true)
   raw?: boolean; // Just text, no formatting
 }
 
@@ -104,8 +105,13 @@ export function formatTranscript(
   segments: TranscriptSegment[],
   options: TranscriptOptions = {},
 ): string {
-  const { diarize = true, timestamps = true, raw = false } = options;
+  const { diarize = true, timestamps = true, attendees = true, raw = false } = options;
   const date = formatDate(doc.google_calendar_event?.start?.dateTime || doc.created_at);
+  const peopleArr = getPeopleArray(doc.people);
+  const attendeeNames = peopleArr
+    .map((p) => p?.name)
+    .filter(Boolean)
+    .join(', ');
 
   // Raw mode: just the text
   if (raw) {
@@ -114,6 +120,9 @@ export function formatTranscript(
 
   let output = `\n${c('bold', `# ${doc.title || '(untitled)'}`)} — Transcript\n`;
   output += `${c('dim', 'Date:')} ${date}\n`;
+  if (attendees && attendeeNames) {
+    output += `${c('dim', 'Attendees:')} ${attendeeNames}\n`;
+  }
   output += `${c('dim', 'Segments:')} ${segments.length}\n\n`;
 
   for (const seg of segments) {

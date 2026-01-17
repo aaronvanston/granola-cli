@@ -180,6 +180,7 @@ async function cmdTranscript(positional: string[], options: Record<string, strin
   const transcriptOpts = {
     diarize: !options['no-diarize'],
     timestamps: !options['no-timestamps'],
+    attendees: !options['no-attendees'],
     raw: !!options.raw,
   };
 
@@ -617,6 +618,7 @@ Arguments:
 
 Options:
   --json           Output as JSON with segments array
+  --no-attendees   Hide attendees list at start
   --no-diarize     Hide You/Them speaker labels
   --no-timestamps  Hide timestamps
   --raw            Just output the text (no formatting)
