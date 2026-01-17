@@ -3,7 +3,7 @@
  */
 
 import type { Document, Person, TranscriptSegment } from '../types.js';
-import { extractParticipants, formatAttendees, formatAttendeesMultiline } from './attendees.js';
+import { extractAttendees, extractParticipants, formatAttendees, formatAttendeesMultiline } from './attendees.js';
 import { formatDate, formatDateTime, getDocumentDate, getPeopleArray } from './cache.js';
 
 // ANSI color codes
