@@ -197,7 +197,7 @@ async function cmdTranscript(positional: string[], options: Record<string, strin
     const client = new GranolaClient(token);
 
     if (!globalOpts.json && !globalOpts.plain && !transcriptOpts.raw) {
-      console.error(`Fetching transcript for: ${doc.title}...`);
+      console.log(`\x1b[33m⚡ Fetching transcript for: ${doc.title}...\x1b[0m`);
     }
 
     const segments = await client.getDocumentTranscript(doc.id);

@@ -4,7 +4,7 @@
 
 import type { Document, Person, TranscriptSegment } from '../types.js';
 import { extractAttendees, formatAttendees } from './attendees.js';
-import { formatDate, getDocumentDate, getPeopleArray } from './cache.js';
+import { formatDate, formatDateTime, getDocumentDate, getPeopleArray } from './cache.js';
 
 // ANSI color codes
 const colors = {
@@ -62,7 +62,7 @@ export function formatMeetingListItem(doc: Document): string {
  * Format meeting details
  */
 export function formatMeetingDetail(doc: Document): string {
-  const date = formatDate(doc.google_calendar_event?.start?.dateTime || doc.created_at);
+  const date = formatDateTime(doc.google_calendar_event?.start?.dateTime || doc.created_at);
   const extractedAttendees = extractAttendees(doc.people);
   const attendeesStr = formatAttendees(extractedAttendees, true); // Include emails
 
@@ -104,7 +104,7 @@ export function formatTranscript(
   options: TranscriptOptions = {},
 ): string {
   const { diarize = true, timestamps = true, attendees = true, raw = false } = options;
-  const date = formatDate(doc.google_calendar_event?.start?.dateTime || doc.created_at);
+  const date = formatDateTime(doc.google_calendar_event?.start?.dateTime || doc.created_at);
   // Extract attendees (expands groups to individuals)
   const extractedAttendees = extractAttendees(doc.people);
   const attendeesStr = formatAttendees(extractedAttendees, true); // Include emails

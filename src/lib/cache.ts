@@ -420,6 +420,29 @@ export function formatDate(dateStr?: string): string {
 }
 
 /**
+ * Format a date with time and timezone for display
+ */
+export function formatDateTime(dateStr?: string): string {
+  if (!dateStr) {
+    return 'unknown date';
+  }
+  const d = new Date(dateStr);
+  const datePart = d.toLocaleDateString('en-AU', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  const timePart = d.toLocaleTimeString('en-AU', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZoneName: 'short',
+  });
+  return `${datePart} at ${timePart}`;
+}
+
+/**
  * Get ISO date string from document
  */
 export function getDocumentDate(doc: Document): string {
