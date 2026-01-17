@@ -58,6 +58,13 @@ granola export "retro" ./out.md              # Export to markdown
 | `transcript <id\|title>` | Fetch transcript ⚡ |
 | `export <id\|title> [path]` | Export to markdown |
 
+### Command Options
+
+- `show`: `--no-attendees`, `--expand-groups`, `--json`
+- `transcript`: `--no-attendees`, `--expand-groups`, `--no-diarize`, `--no-timestamps`, `--raw`, `--json`
+
+Run `granola help <command>` for the full option list.
+
 ### People & Companies
 | Command | Description |
 |---------|-------------|
@@ -102,6 +109,8 @@ Speaker diarization: **You** (green) = microphone, **Them** (cyan) = system audi
 |--------|-------------|
 | `--json` | Output as JSON |
 | `--plain` | No emoji/colors |
+| `--no-emoji` | Disable emoji only |
+| `--no-color` | Disable ANSI colors |
 | `-h, --help` | Help |
 | `-v, --version` | Version |
 
