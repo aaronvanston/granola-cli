@@ -3,6 +3,7 @@
  */
 
 import type { Document, Person, TranscriptSegment } from '../types.js';
+import { extractAttendees, formatAttendees } from './attendees.js';
 import { formatDate, getDocumentDate, getPeopleArray } from './cache.js';
 
 // ANSI color codes
@@ -62,16 +63,13 @@ export function formatMeetingListItem(doc: Document): string {
  */
 export function formatMeetingDetail(doc: Document): string {
   const date = formatDate(doc.google_calendar_event?.start?.dateTime || doc.created_at);
-  const peopleArr = getPeopleArray(doc.people);
-  const attendees = peopleArr
-    .map((p) => p?.name)
-    .filter(Boolean)
-    .join(', ');
+  const extractedAttendees = extractAttendees(doc.people);
+  const attendeesStr = formatAttendees(extractedAttendees, true); // Include emails
 
   let output = `\n${c('bold', `# ${doc.title || '(untitled)'}`)}\n`;
   output += `${c('dim', 'Date:')} ${date}\n`;
-  if (attendees) {
-    output += `${c('dim', 'Attendees:')} ${attendees}\n`;
+  if (attendeesStr) {
+    output += `${c('dim', 'Attendees:')} ${attendeesStr}\n`;
   }
   output += `${c('dim', 'ID:')} ${doc.id}\n`;
 
@@ -107,26 +105,9 @@ export function formatTranscript(
 ): string {
   const { diarize = true, timestamps = true, attendees = true, raw = false } = options;
   const date = formatDate(doc.google_calendar_event?.start?.dateTime || doc.created_at);
-  // Extract attendees from nested people structure
-  const peopleObj = doc.people as Record<string, unknown> | undefined;
-  const attendeeNames: string[] = [];
-  if (peopleObj) {
-    // Add creator
-    const creator = peopleObj.creator as Record<string, unknown> | undefined;
-    if (creator?.name) {
-      attendeeNames.push(creator.name as string);
-    }
-    // Add attendees array
-    const attendeesArr = peopleObj.attendees as Array<Record<string, unknown>> | undefined;
-    if (attendeesArr) {
-      for (const a of attendeesArr) {
-        if (a?.name) {
-          attendeeNames.push(a.name as string);
-        }
-      }
-    }
-  }
-  const attendeesStr = attendeeNames.join(', ');
+  // Extract attendees (expands groups to individuals)
+  const extractedAttendees = extractAttendees(doc.people);
+  const attendeesStr = formatAttendees(extractedAttendees, true); // Include emails
 
   // Raw mode: just the text
   if (raw) {
@@ -201,8 +182,8 @@ function formatTime(seconds: number): string {
 export function exportToMarkdown(doc: Document): string {
   const date = formatDate(doc.google_calendar_event?.start?.dateTime || doc.created_at);
   const isoDate = getDocumentDate(doc);
-  const peopleArr = getPeopleArray(doc.people);
-  const attendees = peopleArr.map((p) => p?.name).filter(Boolean);
+  const extractedAttendees = extractAttendees(doc.people);
+  const attendeeNames = extractedAttendees.map((a) => a.name);
 
   let md = `---
 title: "${doc.title || 'Untitled Meeting'}"
@@ -210,13 +191,13 @@ date: ${isoDate}
 type: meeting-notes
 source: granola
 granola_id: ${doc.id}
-attendees: [${attendees.map((a) => `"${a}"`).join(', ')}]
+attendees: [${attendeeNames.map((a) => `"${a}"`).join(', ')}]
 ---
 
 # ${doc.title || 'Untitled Meeting'}
 
 **Date:** ${date}
-${attendees.length ? `**Attendees:** ${attendees.join(', ')}` : ''}
+${extractedAttendees.length ? `**Attendees:** ${formatAttendees(extractedAttendees, true)}` : ''}
 
 `;
 
@@ -237,16 +218,13 @@ ${attendees.length ? `**Attendees:** ${attendees.join(', ')}` : ''}
  * Convert document to JSON-friendly format
  */
 export function documentToJson(doc: Document): Record<string, unknown> {
-  const peopleArr = getPeopleArray(doc.people);
-  const attendees = peopleArr
-    .filter((p) => p?.name || p?.email)
-    .map((p) => ({ name: p?.name || null, email: p?.email || null }));
+  const extractedAttendees = extractAttendees(doc.people);
 
   return {
     id: doc.id,
     title: doc.title,
     date: doc.google_calendar_event?.start?.dateTime || doc.created_at,
-    attendees,
+    attendees: extractedAttendees,
     hasNotes: !!(doc.notes_markdown || doc.notes_plain),
     hasSummary: !!doc.summary,
     notes: doc.notes_markdown || doc.notes_plain || null,
