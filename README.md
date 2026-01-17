@@ -1,4 +1,4 @@
-# granola 🥣
+# granola-cli 🥣
 
 Fast CLI for accessing your [Granola](https://granola.ai) meeting notes, transcripts, and search.
 
@@ -11,14 +11,10 @@ This project is not affiliated with or endorsed by Granola.
 ## Installation
 
 ```bash
-# npm / pnpm / bun
-npm install -g granola-cli
-pnpm add -g granola-cli
-bun add -g granola-cli
-
-# From source
 git clone https://github.com/aaronvanston/granola-cli.git
-cd granola-cli && bun install && bun link
+cd granola-cli
+bun install
+bun link
 ```
 
 ## Prerequisites
